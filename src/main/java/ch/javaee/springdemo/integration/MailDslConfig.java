@@ -4,18 +4,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
-import org.springframework.integration.annotation.ServiceActivator;
-import org.springframework.integration.channel.DirectChannel;
+import org.springframework.integration.dsl.IntegrationFlow;
+import org.springframework.integration.dsl.IntegrationFlows;
 import org.springframework.integration.mail.MailSendingMessageHandler;
-import org.springframework.mail.MailMessage;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
-import org.springframework.messaging.Message;
-import org.springframework.messaging.MessageChannel;
-import org.springframework.messaging.MessageHandler;
 
 @Configuration
 @PropertySource("classpath:/smtp.properties")
-public class MailConfig {
+public class MailDslConfig {
 
     @Value("${smtp.host}")
     private String smptHost;
@@ -33,17 +29,11 @@ public class MailConfig {
         return mailSender;
     }
 
+
     @Bean
-    public MessageChannel smtpChannel() {
-        return new DirectChannel();
-    }
-
-    @ServiceActivator(inputChannel = "smtpChannel", outputChannel = "nullChannel")
-    public MessageHandler mailsSenderMessagingHandler (Message<MailMessage> message) {
-
-        MailSendingMessageHandler mailSendingMessageHandler = new MailSendingMessageHandler(mailSender());
-        mailSendingMessageHandler.handleMessage(message);
-
-        return mailSendingMessageHandler;
+    public IntegrationFlow smtpFlow() {
+        return IntegrationFlows.from("smtpFlowChannel")
+                .handle(new MailSendingMessageHandler(mailSender()))
+                .get();
     }
 }
